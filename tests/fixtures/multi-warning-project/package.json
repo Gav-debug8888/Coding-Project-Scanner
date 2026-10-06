@@ -1,0 +1,9 @@
+{
+  "//": "SIMULATION: harmless multi-warning fixture. Nothing here reads credentials or contacts a server.",
+  "name": "multi-warning-project",
+  "version": "0.0.1",
+  "scripts": {
+    "postinstall": "echo \"SIMULATION: harmless postinstall hook\""
+  },
+  "license": "MIT"
+}

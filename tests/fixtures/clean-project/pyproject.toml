@@ -1,0 +1,6 @@
+[project]
+name = "clean-project"
+version = "1.0.0"
+description = "SIMULATION: clean fixture for the coding-project scanner"
+requires-python = ">=3.9"
+dependencies = []

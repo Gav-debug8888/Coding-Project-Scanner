@@ -1,0 +1,7 @@
+# Runtime
+colorama>=0.4
+rich>=13.0
+# Development / testing
+pytest>=7.0
+# Optional (not a pip package): `jq` is used by the CI workflow to parse the JSON report.
+# Install with: sudo apt-get install jq   |   brew install jq

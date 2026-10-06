@@ -1,0 +1,56 @@
+name: Safe Coding-Project Scanner
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    name: Static scan + unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e .
+          sudo apt-get update -qq && sudo apt-get install -y -qq jq
+
+      - name: Run unit tests
+        run: python -m pytest tests/ -v
+
+      # tests/fixtures holds deliberately suspicious SIMULATION repos; scanning them
+      # would always yield CRITICAL, so they are excluded from the self-scan.
+      - name: Run scanner
+        run: python -m scanner scan . --exclude tests/fixtures --output both --output-file scan_report.json
+
+      - name: Upload scan report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-report
+          path: scan_report.json
+
+      # High-severity findings require human review — do not auto-merge
+      - name: Gate on risk level (High-severity findings require human review — do not auto-merge)
+        run: |
+          RISK_LEVEL=$(jq -r '.risk_level' scan_report.json)
+          RISK_SCORE=$(jq -r '.risk_score' scan_report.json)
+          echo "Risk level: ${RISK_LEVEL} (score ${RISK_SCORE})"
+          jq -r '.findings[] | "\(.severity)\t\(.rule_id)\t\(.file):\(.line)"' scan_report.json
+          if [ "$RISK_LEVEL" = "HIGH" ] || [ "$RISK_LEVEL" = "CRITICAL" ]; then
+            echo "::error::Risk level ${RISK_LEVEL}. High-severity findings require human review — do not auto-merge."
+            exit 1
+          fi
+          echo "Risk level below HIGH - gate passed."

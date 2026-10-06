@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "coding-project-scanner"
+version = "1.0.0"
+description = "Static, non-executing scanner that flags risky behaviour in untrusted coding projects."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+dependencies = ["rich>=13.0", "colorama>=0.4"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+coding-project-scanner = "scanner.scanner:main"
+
+[tool.setuptools]
+packages = ["scanner"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+norecursedirs = ["fixtures"]

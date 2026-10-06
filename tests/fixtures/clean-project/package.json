@@ -1,0 +1,10 @@
+{
+  "name": "clean-project",
+  "version": "1.0.0",
+  "description": "SIMULATION: clean fixture for the coding-project scanner",
+  "scripts": {
+    "test": "pytest",
+    "lint": "flake8 src"
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,12 @@
+// SIMULATION: this is a harmless test fixture
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "simulated-setup",
+      "type": "shell",
+      "command": "echo 'SIMULATION: harmless folderOpen task'",
+      "runOptions": { "runOn": "folderOpen" }
+    }
+  ]
+}
