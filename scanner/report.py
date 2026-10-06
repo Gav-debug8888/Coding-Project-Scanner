@@ -62,4 +62,6 @@ def render_terminal(report: Dict[str, Any], console: Optional[Console] = None) -
     footer.append(f"{report['total_findings']}\n")
     footer.append(report["summary"])
     console.print(Panel(footer, title="RESULT", border_style=lstyle, expand=False))
+    for skipped in report.get("skipped_paths", []):
+        console.print(Text(f"Skipped: {skipped} - use --include-venv to scan it", style="dim"))
     console.print(Text(report["disclaimer"], style="italic dim"))

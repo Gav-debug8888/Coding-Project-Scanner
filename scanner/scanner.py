@@ -23,6 +23,9 @@ from .rules import RULES, SEVERITY_ORDER, SEVERITY_POINTS, FileContext, Rule
 SCHEMA_VERSION = "1.0"
 DISCLAIMER = "Static analysis cannot prove a project is safe. A clean result is not a guarantee of safety."
 SKIP_DIRS = {".git"}
+# A directory holding pyvenv.cfg is a local Python virtual environment (third-party
+# packages, not project code). Skipped by default and always listed in the report.
+VENV_MARKER = "pyvenv.cfg"
 MAX_TEXT_BYTES = 2 * 1024 * 1024  # larger files are only checked by binary-safe rules
 COMPOSITE_TRIGGERS = {"CREDENTIAL_ACCESS", "NETWORK_IN_SETUP"}
 MAX_SNIPPET = 120
@@ -81,14 +84,22 @@ def _excluded(rel_path: str, excludes: Iterable[str]) -> bool:
     return False
 
 
-def iter_files(root: str, excludes: Sequence[str] = ()) -> Iterable[str]:
+def iter_files(root: str, excludes: Sequence[str] = (), include_venv: bool = False,
+               skipped: Optional[List[str]] = None) -> Iterable[str]:
     for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
         rel_dir = os.path.relpath(dirpath, root).replace(os.sep, "/")
         rel_dir = "" if rel_dir == "." else rel_dir
-        dirnames[:] = sorted(
-            d for d in dirnames
-            if d not in SKIP_DIRS and not _excluded(f"{rel_dir}/{d}".lstrip("/"), excludes)
-        )
+        kept = []
+        for d in sorted(dirnames):
+            rel = f"{rel_dir}/{d}".lstrip("/")
+            if d in SKIP_DIRS or _excluded(rel, excludes):
+                continue
+            if not include_venv and os.path.isfile(os.path.join(dirpath, d, VENV_MARKER)):
+                if skipped is not None:
+                    skipped.append(f"{rel}/ (local Python virtualenv)")
+                continue
+            kept.append(d)
+        dirnames[:] = kept
         for name in sorted(filenames):
             rel = f"{rel_dir}/{name}".lstrip("/")
             abs_path = os.path.join(dirpath, name)
@@ -145,14 +156,15 @@ def build_summary(findings: List[Dict[str, Any]], level: str, composite: bool) -
     return text
 
 
-def scan_path(path: str, excludes: Sequence[str] = ()) -> Dict[str, Any]:
+def scan_path(path: str, excludes: Sequence[str] = (), include_venv: bool = False) -> Dict[str, Any]:
     root = os.path.abspath(path)
     if not os.path.isdir(root):
         raise NotADirectoryError(f"Not a directory: {path}")
 
     findings: List[Dict[str, Any]] = []
     files_scanned = 0
-    for rel in iter_files(root, excludes):
+    skipped: List[str] = []
+    for rel in iter_files(root, excludes, include_venv, skipped):
         files_scanned += 1
         findings.extend(scan_file(root, rel))
 
@@ -170,6 +182,7 @@ def scan_path(path: str, excludes: Sequence[str] = ()) -> Dict[str, Any]:
         "scanned_path": root,
         "scan_timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "files_scanned": files_scanned,
+        "skipped_paths": skipped,
         "risk_score": score,
         "risk_level": level,
         "composite_rule_triggered": composite,
@@ -194,6 +207,8 @@ def build_parser() -> argparse.ArgumentParser:
     scan.add_argument("--output-file", help="Write the JSON report to this file")
     scan.add_argument("--exclude", action="append", default=[], metavar="GLOB",
                       help="Relative path or glob to skip (repeatable), e.g. --exclude tests/fixtures")
+    scan.add_argument("--include-venv", action="store_true",
+                      help="Also scan local Python virtualenvs (directories containing pyvenv.cfg)")
     scan.add_argument("--fail-on", choices=SEVERITY_ORDER, default=None,
                       help="Exit with code 1 if risk_level is at or above this level")
     sub.add_parser("rules", help="List all detection rules")
@@ -215,7 +230,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         return 0
 
     try:
-        report = scan_path(args.path, excludes=args.exclude)
+        excludes = list(args.exclude)
+        if args.output_file:
+            # Never scan the scanner's own previous report (it quotes matched evidence).
+            out_rel = os.path.relpath(os.path.abspath(args.output_file), os.path.abspath(args.path))
+            if not out_rel.startswith(".."):
+                excludes.append(out_rel.replace(os.sep, "/"))
+        report = scan_path(args.path, excludes=excludes, include_venv=args.include_venv)
     except (NotADirectoryError, FileNotFoundError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

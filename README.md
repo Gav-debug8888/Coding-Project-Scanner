@@ -51,6 +51,7 @@ python -m scanner rules               # print the rule catalogue
 | `--output json` | JSON report on stdout, or written to `--output-file` |
 | `--output both` | Terminal report, plus JSON (to `--output-file` or stdout) |
 | `--exclude GLOB` | Skip a relative path or glob. Can be repeated. |
+| `--include-venv` | Also scan local Python virtualenvs. By default, directories containing `pyvenv.cfg` are skipped and listed under `skipped_paths`. |
 | `--fail-on LEVEL` | Exit with code `1` if the risk level is at or above `LEVEL` (useful in CI) |
 
 #### Terminal output example

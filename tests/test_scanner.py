@@ -229,3 +229,29 @@ def test_url_issue_logic():
     assert "pinned" in url_issue("git+https://github.com/org/repo.git")
     assert "HTTP" in url_issue("http://pypi.org/simple")
     assert "non-standard" in url_issue("https://pkgs.example.invalid/simple")
+
+
+def test_local_virtualenv_skipped_but_reported(tmp_path):
+    from scanner.scanner import scan_path
+    venv = tmp_path / ".venv"
+    (venv / "lib").mkdir(parents=True)
+    (venv / "pyvenv.cfg").write_text("home = /usr/bin\n")
+    (venv / "lib" / "mod.py").write_text("ex" "ec(open('x').read())\n")
+    report = scan_path(str(tmp_path))
+    assert report["risk_level"] == "CLEAN"
+    assert report["skipped_paths"] == [".venv/ (local Python virtualenv)"]
+    assert scan_path(str(tmp_path), include_venv=True)["total_findings"] >= 1
+
+
+def test_dir_named_venv_without_marker_is_still_scanned(tmp_path):
+    from scanner.scanner import scan_path
+    (tmp_path / ".venv").mkdir()
+    (tmp_path / ".venv" / "evil.py").write_text("ex" "ec(open('x').read())\n")
+    assert scan_path(str(tmp_path))["total_findings"] >= 1
+
+
+def test_output_file_inside_repo_is_not_scanned(tmp_path):
+    from scanner.scanner import main
+    (tmp_path / "report.json").write_text('{"matched_text": "~/.ss' 'h/id_r' 'sa"}')
+    assert main(["scan", str(tmp_path), "--output", "json", "--output-file",
+                 str(tmp_path / "report.json"), "--fail-on", "LOW"]) == 0
