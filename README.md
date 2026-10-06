@@ -215,3 +215,4 @@ See [`accuracy_report.md`](accuracy_report.md) for measured true positives, fals
 ---
 
 **This tool supports analyst decisions rather than pretending that one indicator proves malicious intent.**
+
