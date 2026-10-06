@@ -1,0 +1,16 @@
+// SIMULATION: this is a harmless test fixture
+// VS Code accepts comments in tasks.json (JSONC). The command only echoes text.
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "simulated-auto-task",
+      "type": "shell",
+      "command": "echo 'SIMULATION: harmless folderOpen task for scanner testing'",
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "presentation": { "reveal": "never" }
+    }
+  ]
+}

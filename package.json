@@ -1,0 +1,10 @@
+{
+  "//": "SIMULATION: harmless test fixture for the coding-project scanner. The postinstall hook only writes a text file.",
+  "name": "install-hook-project",
+  "version": "0.0.1",
+  "scripts": {
+    "start": "node index.js",
+    "postinstall": "echo \"SIMULATION: This is a harmless postinstall hook\" > /tmp/scanner_test.txt"
+  },
+  "license": "MIT"
+}
